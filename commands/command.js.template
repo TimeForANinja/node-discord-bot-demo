@@ -1,0 +1,33 @@
+// basic schema for a command
+// for the future: make this a class the commands extend
+// to enforce the interface
+
+// it starts with a trigger, this can be ether:
+// a string array
+exports.triggers = ['8ball'];
+// a regex
+exports.triggers = /[0-9]*/;
+// a function getting the string:argString or stringArray:argArray
+exports.triggers = (argString, argArray) => {};
+
+// this variable defines whether the trigger is case sensitive
+// if false, the text gets lower cased
+exports.caseSensitive = false;
+
+// command to run if a message matches the trigger
+exports.run = async (msg, args) => {
+  msg.channel.send(`This server's name is: ${msg.guild.name}`);
+}
+
+// usage text
+exports.usage = {
+  // <prefix> get's automaticly replaced with the prefix defined in the config
+  usage: '<prefix>name <usage>',
+  short: 'tell what it does',
+};
+
+// function that gets called when the command is first loaded
+// advantage is that you now have the client obj
+exports.init = client => {
+
+}

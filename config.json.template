@@ -1,0 +1,6 @@
+// use this to create a `config.json` file,
+// all you need to do is replace the token variable
+{
+	"token": "MY.DISCORD.BOT.TOKEN",
+	"prefix": "!"
+}
