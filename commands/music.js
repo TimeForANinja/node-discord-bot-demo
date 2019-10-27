@@ -31,6 +31,7 @@ exports.run = async (msg, args) => {
         songs: [],
         collector: collector,
         loop: false,
+		replay: false,
         volume: 5,
       });
       const q = SONG_QUEUE.get(msg.guild.id);
@@ -56,7 +57,7 @@ exports.run = async (msg, args) => {
 exports.usage = {
   usage: [
     '<prefix>music play <youtube link>',
-    'skip|stop|np|queue|loop|volume++|volume--|volume'
+    'skip|stop|np|queue|loop|volume++|volume--|volume|replay'
   ],
   short: 'Time to spice up that voice channel!!!',
 };
@@ -92,6 +93,11 @@ const onPlayingMsg = (msg) => {
       Q.loop = !Q.loop;
       // that "bool ? first : second" is an inline if statement
       msg.reply(`looping now ${Q.loop ? 'enabled' : 'disabled'}`);
+      break;
+    }
+    case 'replay': {
+	  Q.replay = true;
+      msg.reply(`replay current song`);
       break;
     }
     case 'volume': {
@@ -131,6 +137,7 @@ const play = (guild, voiceChannel) => {
     const dispatcher = connection.playStream(YTDL(Q.songs[0].ref, {filter: 'audioonly'}));
     dispatcher.on('end', () => {
       console.log('dispatcher end', Q);
+	  if(Q.replay) return play(guild, voiceChannel);
       if(Q.loop && Q.songs.length) Q.songs.push(Q.songs.shift());
       else Q.songs.shift();
       play(guild, voiceChannel);
