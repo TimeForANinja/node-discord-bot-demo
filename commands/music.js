@@ -1,11 +1,12 @@
 const YTDL = require('ytdl-core');
+const PRISM = require('prism-media');
 const SONG_QUEUE = new Map();
 
 exports.triggers = ['music'];
 exports.caseSensitive = false;
 exports.run = async (msg, args) => {
   // stop if not in a voice channel
-  const voiceChannel = msg.member.voiceChannel;
+  const voiceChannel = msg.member.voice.channel;
   if (!voiceChannel) return msg.channel.send('you gotta be in a voice channel boy');
   // stop when permissions are missing
   const permissions = voiceChannel.permissionsFor(msg.client.user);
@@ -134,22 +135,48 @@ const play = (guild, voiceChannel) => {
     return Q.collector.channel.send('And i thought you wanted me to play... Then freaking listen...');
   }
   voiceChannel.join().then(connection => {
-    const dispatcher = connection.playStream(YTDL(Q.songs[0].ref, {filter: 'audioonly'}));
-    dispatcher.on('end', () => {
-      console.log('dispatcher end', Q);
-	  if(Q.replay) return play(guild, voiceChannel);
-      if(Q.loop && Q.songs.length) Q.songs.push(Q.songs.shift());
-      else Q.songs.shift();
-      play(guild, voiceChannel);
+    YTDL.getInfo(Q.songs[0].ref).then(info => {
+      const s16le = new PRISM.FFmpeg({
+        args: [
+          '-reconnect',  '1',
+          '-reconnect_streamed', '1',
+          '-reconnect_delay_max', '3',
+          '-ss', '60',
+          '-i', info.formats[0].url,
+          '-analyzeduration', '0',
+          '-loglevel', '0',
+          '-c:a', 'opus',
+          '-ar', '48000',
+          '-ac', '2',
+        ]
+      });
+      const dispatcher = connection.play(
+        s16le,
+        {
+          // type: 'opus',
+          // plp: 0,
+          // fec: true,
+          // bitrate: 512,
+          // highWaterMark: 100,
+          volume: 1.1
+        }
+      );
+      dispatcher.on('end', () => {
+        console.log('dispatcher end', Q);
+  	  if(Q.replay) return play(guild, voiceChannel);
+        if(Q.loop && Q.songs.length) Q.songs.push(Q.songs.shift());
+        else Q.songs.shift();
+        play(guild, voiceChannel);
+      });
+      dispatcher.on('error', error => {
+        // cleanup
+        voiceChannel.leave();
+        Q.collector.stop();
+        SONG_QUEUE.delete(guild.id);
+        return Q.collector.channel.send(`Uuups, something went wrong`);
+      });
+      dispatcher.setVolumeDecibels(Q.volume / 5);
+      Q.dispatcher = dispatcher;
     });
-    dispatcher.on('error', error => {
-      // cleanup
-      voiceChannel.leave();
-      Q.collector.stop();
-      SONG_QUEUE.delete(guild.id);
-      return Q.collector.channel.send(`Uuups, something went wrong`);
-    });
-    dispatcher.setVolumeDecibels(Q.volume / 5);
-    Q.dispatcher = dispatcher;
   });
 }
