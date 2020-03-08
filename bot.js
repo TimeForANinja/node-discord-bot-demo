@@ -24,7 +24,7 @@ client.LoadInterceptors(client.INTERCEPT_DIR);
 console.log(`loaded ${client.commands.size} commands and ${client.interceptors.size} interceptors`)
 
 client.once('ready', () => {
-  console.log('Client ready!');
+  console.log(`Client ready!\nGet it on your server here: https://discordapp.com/oauth2/authorize?&client_id=${client.user.id}&scope=bot&permissions=8`);
 });
 
 client.on('error', err => {
