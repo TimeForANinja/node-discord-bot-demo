@@ -1,10 +1,10 @@
-const { RichEmbed } = require('discord.js');
+const { MessageEmbed } = require('discord.js');
 
 exports.triggers = ['server'];
 exports.caseSensitive = false;
 exports.run = async (msg, args) => {
   // wanna show you how to use embeds:
-  const embed = new RichEmbed();
+  const embed = new MessageEmbed();
   // you can just add field by field
   // check discord.js's documentation for all the cool thinks you can do
   embed.setTitle(`Stats for ${msg.guild.name}`);

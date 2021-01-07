@@ -9,11 +9,11 @@ exports.run = async (msg, args) => {
   // can't do this when we're playing sth somewhere else
   if(msg.guild.voiceConnection) return;
   // can't do this when the author is not in a voiceChannel
-  if(!msg.member.voiceChannel) return;
+  if(!msg.member.voice.channel) return;
 
   // might still fail 'cause missing permissions
-  msg.member.voiceChannel.join().then(connection => {
-    connection.playFile(PATH.resolve(__dirname, SCREAM_FILE));
+  msg.member.voice.channel.join().then(connection => {
+    connection.play(PATH.resolve(__dirname, SCREAM_FILE));
   });
 }
 exports.usage = {

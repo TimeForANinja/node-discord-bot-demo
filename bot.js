@@ -71,7 +71,7 @@ client.on('message', async (msg) => {
   for(const [, cmd] of client.commands) {
     const argString = cmd.caseSensitive ? rawArgString : rawArgString.toLowerCase();
     const args = argString.split(' ');
-    // commands can be 3 types: function, regex or array
+    // triggers can be 3 types: function, regex or array
     if(typeof cmd.triggers === 'function') {
       if ( !cmd.triggers(argString, args) ) continue;
     } else if(cmd.triggers instanceof RegExp) {
@@ -79,7 +79,7 @@ client.on('message', async (msg) => {
     } else {
       if ( !cmd.triggers.includes(args[0]) ) continue;
     }
-    // if we reach this point and none of the continue statements was executed
+    // if we reach this point and none of the continue-statements was executed
     // we found our command
     return cmd.run(msg, rawArgString);
   }
