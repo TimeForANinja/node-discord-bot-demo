@@ -1,4 +1,6 @@
 const YTDL = require('ytdl-core');
+const YTPL = require('ytpl');
+const YTSR = require('ytsr');
 const SONG_QUEUE = new Map();
 
 exports.triggers = ['music'];
@@ -20,37 +22,34 @@ exports.run = async (msg, args) => {
   const songRef = args.substr(11);
   if(!songRef) return msg.channel.send(`Usage: \`${exports.usage.usage[0].replace('<prefix>', msg.client.prefix)}\``)
   // get the ytdl data
-  await YTDL.getInfo(songRef).then(songInfo => {
-    const vid = {
-      name: songInfo.videoDetails.title,
-      ref: songInfo.videoDetails.videoId,
-      requester: msg.member,
-    };
-    if(!SONG_QUEUE.has(msg.guild.id)) {
-      // cool function that let's you 'collect' the next message(s) in a channel
-      // pretty much a dedicated hook to the client#message event
-      const collector = msg.channel.createMessageCollector(a => true);
-      collector.on('collect', onPlayingMsg);
-      SONG_QUEUE.set(msg.guild.id, {
-        id: msg.guild.id,
-        songs: [],
-        collector: collector,
-        loop: false,
-        replay: false,
-        volume: 5,
-      });
-      const q = SONG_QUEUE.get(msg.guild.id);
-      q.songs.push(vid);
-      msg.channel.send(`:+1: that looks good\nyou can now use\n${exports.usage.usage[1]}\nin this channel`);
-      play(msg.guild, voiceChannel);
-    } else {
-      SONG_QUEUE.get(msg.guild.id).songs.push(vid);
-      msg.reply(`👍 added "${vid.name}" to q`);
-    }
-  }).catch(err => {
-    // actually check whether ytdl finds that song
-    return msg.channel.send(`Sorry, but i'm unable to fullfill that wish for ${songRef}`);
-  });
+  let vids = [];
+  try {
+    vids = await resolveQuery(songRef, msg.member);
+  } catch(e) {
+    console.error(e);
+  }
+  if (vids.length === 0) return msg.channel.send(`Sorry, but i'm unable to resolve that query to a video`);
+
+  if(!SONG_QUEUE.has(msg.guild.id)) {
+    // cool function that let's you 'collect' the next message(s) in a channel
+    // pretty much a dedicated hook to the client#message event
+    const collector = msg.channel.createMessageCollector(a => true);
+    collector.on('collect', onPlayingMsg);
+    // create and save a queue object to track songs
+    SONG_QUEUE.set(msg.guild.id, {
+      id: msg.guild.id,
+      songs: vids,
+      collector: collector,
+      loop: false,
+      replay: false,
+      volume: 5,
+    });
+    msg.channel.send(`:+1: that looks fine\nyou can now use\n${exports.usage.usage[1]}\nin this channel`);
+    play(msg.guild, voiceChannel);
+  } else {
+    SONG_QUEUE.get(msg.guild.id).songs.push(...vid);
+    msg.reply(`👍 added "${vid.name}" to q`);
+  }
 }
 exports.usage = {
   usage: [
@@ -59,6 +58,39 @@ exports.usage = {
   ],
   short: 'Time to spice up that voice channel!!!',
 };
+
+// resolve the string provided to a / multiple youtube videos
+// uses ytpl to resolve playlists
+// ytdl-core to resolve single videos
+// and ytsr for all other unknown strings
+const resolveQuery = async (query, requester) => {
+  if (!query.includes(' ') && (query.startsWith('https://www.youtube.com/') || query.startsWith('https://youtu.be/'))) {
+    if (YTPL.validateID()) {
+      const playlist = await YTPL(query, { limit: 10 });
+      return playlist.items.map(x => ({
+        name: x.title,
+        ref: x.url,
+        requester,
+      }));
+    } else {
+      const songInfo = await YTDL.getInfo(query);
+      return [{
+        name: songInfo.videoDetails.title,
+        ref: songInfo.videoDetails.videoId,
+        requester,
+      }];
+    }
+  } else {
+    const filters = await YTSR.getFilters(query);
+    const vid = await YTSR(filters.get('Type').get('Video').url, { limit: 1 });
+    // using map handles 1 and 0 results
+    return vid.items.map(x => ({
+      name: x.title,
+      ref: x.url,
+      requester,
+    }));
+  }
+}
 
 // callback for the collector listening to modification commands
 const onPlayingMsg = (msg) => {
@@ -142,7 +174,11 @@ const play = async (guild, voiceChannel) => {
   // discord.js just returns the connection if one already exists
   Q.collector.channel.send(`starting to play "${Q.songs[0].name}"`)
   const connection = await voiceChannel.join();
-  const stream = YTDL(Q.songs[0].ref, {filter: 'audioonly'});
+  const stream = YTDL(Q.songs[0].ref, {
+    filter: 'audioonly',
+    dlChunkSize: 0, // should be used for live-playback
+    highWaterMark: 2 * 1024 * 1024, // cach 2MB of data
+  });
   const dispatcher = connection.play(stream);
   // dispatcher.on('close', () => {
   dispatcher.on('finish', () => {

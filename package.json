@@ -4,9 +4,11 @@
   "description": "",
   "main": "bot.js",
   "dependencies": {
+    "@discordjs/opus": "^0.3.3",
     "discord.js": "^12.5.1",
-    "opusscript": "0.0.7",
-    "ytdl-core": "^4.4.1"
+    "ytdl-core": "^4.4.1",
+    "ytpl": "^2.0.4",
+    "ytsr": "^3.2.1"
   },
   "devDependencies": {},
   "scripts": {
