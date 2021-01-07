@@ -179,6 +179,8 @@ const play = async (guild, voiceChannel) => {
     dlChunkSize: 0, // should be used for live-playback
     highWaterMark: 8 * 1024 * 1024, // cach 2MB of data
     opusEncoded: true, // tell the wrapper to prefer opus
+    // some audio compression to remove spikes
+    encoderArgs: ['-af', 'acompressor=threshold=-21dB:ratio=9:attack=200:release=1000'],
   });
   const dispatcher = connection.play(stream, { type: 'opus' });
   // dispatcher.on('close', () => {
