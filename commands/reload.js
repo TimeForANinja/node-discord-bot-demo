@@ -17,7 +17,9 @@ exports.run = async (msg, args) => {
   msg.client.LoadInterceptors(msg.client.INTERCEPT_DIR);
   msg.client.LoadCommands(msg.client.CMD_DIR);
   // watch out, msg.client.commands is a Map and therefor it's not length but size
-  msg.channel.send(`loaded ${msg.client.commands.size} commands and ${msg.client.interceptors.size} interceptors`)
+  const txt = `loaded ${msg.client.commands.size} commands and ${msg.client.interceptors.size} interceptors`;
+  console.log(txt);
+  msg.channel.send(txt);
 }
 exports.usage = {
   usage: '<prefix>reload',
