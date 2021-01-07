@@ -1,4 +1,4 @@
-const YTDL = require('ytdl-core');
+const YTDL = require('discord-ytdl-core');
 const YTPL = require('ytpl');
 const YTSR = require('ytsr');
 const SONG_QUEUE = new Map();
@@ -65,7 +65,7 @@ exports.usage = {
 // and ytsr for all other unknown strings
 const resolveQuery = async (query, requester) => {
   if (!query.includes(' ') && (query.startsWith('https://www.youtube.com/') || query.startsWith('https://youtu.be/'))) {
-    if (YTPL.validateID()) {
+    if (YTPL.validateID(query)) {
       const playlist = await YTPL(query, { limit: 10 });
       return playlist.items.map(x => ({
         name: x.title,
@@ -177,9 +177,10 @@ const play = async (guild, voiceChannel) => {
   const stream = YTDL(Q.songs[0].ref, {
     filter: 'audioonly',
     dlChunkSize: 0, // should be used for live-playback
-    highWaterMark: 2 * 1024 * 1024, // cach 2MB of data
+    highWaterMark: 8 * 1024 * 1024, // cach 2MB of data
+    opusEncoded: true, // tell the wrapper to prefer opus
   });
-  const dispatcher = connection.play(stream);
+  const dispatcher = connection.play(stream, { type: 'opus' });
   // dispatcher.on('close', () => {
   dispatcher.on('finish', () => {
     // just restart with the same song at the beginning
