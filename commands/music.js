@@ -59,13 +59,18 @@ exports.usage = {
   short: 'Time to spice up that voice channel!!!',
 };
 
-// resolve the string provided to a / multiple youtube videos
+// resolve the string provided to a single / multiple youtube videos
+// always returns an array
 // uses ytpl to resolve playlists
 // ytdl-core to resolve single videos
 // and ytsr for all other unknown strings
+// errors for invalid links & links we can't interpretate
 const resolveQuery = async (query, requester) => {
+  // looks like we we're provided with a link
   if (!query.includes(' ') && (query.startsWith('https://www.youtube.com/') || query.startsWith('https://youtu.be/'))) {
+    // check if it's a youtube playlist
     if (YTPL.validateID(query)) {
+      // if so fetch the first (max) 10 items of the playlist
       const playlist = await YTPL(query, { limit: 10 });
       return playlist.items.map(x => ({
         name: x.title,
@@ -73,14 +78,19 @@ const resolveQuery = async (query, requester) => {
         requester,
       }));
     } else {
+      // no playlist so we try if it's a video
       const songInfo = await YTDL.getInfo(query);
       return [{
+        // this name, ref & requester format is what we use internally to save the songs to play
+        // saving the whole getInfo would make it faster
+        // but the format links do have a max-age so we would have to add additional checks for that
         name: songInfo.videoDetails.title,
         ref: songInfo.videoDetails.videoId,
         requester,
       }];
     }
   } else {
+    // no link so we just search in on youtube
     const filters = await YTSR.getFilters(query);
     const vid = await YTSR(filters.get('Type').get('Video').url, { limit: 1 });
     // using map handles 1 and 0 results
